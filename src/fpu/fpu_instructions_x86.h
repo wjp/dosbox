@@ -891,38 +891,26 @@
 #ifdef WEAK_EXCEPTIONS
 #define FPUD_FYL2X(op)						\
 		__asm__ volatile (					\
-			"movl		%0, %%eax		\n"	\
-			"incl		%%eax			\n"	\
-			"andl		$7, %%eax		\n"	\
-			"shll		$4, %%eax		\n"	\
-			"shll		$4, %0			\n"	\
-			"fldt		(%1, %%eax)		\n"	\
-			"fldt		(%1, %0)		\n"	\
+			"fldt		%0				\n"	\
+			"fldt		%1				\n"	\
 			#op" 						\n"	\
-			"fstpt		(%1, %%eax)		\n"	\
-			:								\
-			:	"r" (TOP), "r" (fpu.p_regs)	\
-			:	"eax", "memory"				\
+			"fstpt		%0				\n"	\
+			:	"+m" (fpu.p_regs[(TOP+1)&7])	\
+			:	"m" (fpu.p_regs[TOP]) 		\
 		);									\
 		FPU_FPOP();
 #else
 #define FPUD_FYL2X(op)						\
 		Bit16u new_sw;						\
 		__asm__ volatile (					\
-			"movl		%1, %%eax		\n"	\
-			"incl		%%eax			\n"	\
-			"andl		$7, %%eax		\n"	\
-			"shll		$4, %%eax		\n"	\
-			"shll		$4, %1			\n"	\
-			"fldt		(%2, %%eax)		\n"	\
-			"fldt		(%2, %1)		\n"	\
+			"fldt		%1				\n"	\
+			"fldt		%2				\n"	\
 			"fclex						\n"	\
 			#op" 						\n"	\
 			"fnstsw		%0				\n"	\
-			"fstpt		(%2, %%eax)		\n"	\
-			:	"=m" (new_sw)				\
-			:	"r" (TOP), "r" (fpu.p_regs)	\
-			:	"eax", "memory"				\
+			"fstpt		%1				\n"	\
+			:	"=m" (new_sw), "+m" (fpu.p_regs[(TOP+1)&7])		\
+			:	"m" (fpu.p_regs[TOP]) 		\
 		);									\
 		fpu.sw=(new_sw&0xffbf)|(fpu.sw&0x80ff);		\
 		FPU_FPOP();
