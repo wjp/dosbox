@@ -556,7 +556,7 @@
 			#op #szA "	%2				\n"	\
 			"fnstsw		%0				\n"	\
 			"fstpt		%1				"	\
-			:	"=m" (new_sw), "=m" (fpu.p_regs[store_to])		\
+			:	"=&am" (new_sw), "=m" (fpu.p_regs[store_to])		\
 			:	"m" (fpu.p_regs[8])			\
 		);									\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);
@@ -576,7 +576,7 @@
 			"fclex						\n"	\
 			#op #szA "	%1				\n"	\
 			"fnstsw		%0				\n"	\
-			:	"=m" (new_sw)				\
+			:	"=&am" (new_sw)				\
 			:	"m" (fpu.p_regs[8])			\
 			:								\
 		);									\
@@ -606,7 +606,7 @@
 			#op #szA "	%2				\n"	\
 			"fnstsw		%0				\n"	\
 			"fldcw		%1				"	\
-			:	"=m" (new_sw), "=m" (save_cw), "=m" (fpu.p_regs[8])	\
+			:	"=&am" (new_sw), "=m" (save_cw), "=m" (fpu.p_regs[8])	\
 			:	"m" (fpu.p_regs[TOP]), "m" (fpu.cw_mask_all)			\
 		);									\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);
@@ -621,7 +621,7 @@
 			#op" 						\n"	\
 			"fnstsw		%0				\n"	\
 			"fstpt		%1				"	\
-			:	"=m" (new_sw), "+m" (fpu.p_regs[TOP])		\
+			:	"=&am" (new_sw), "+m" (fpu.p_regs[TOP])		\
 		);									\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);
 
@@ -690,7 +690,7 @@
 			"fnstsw		%0				\n"	\
 			"fstpt		%2				\n"	\
 			"fstpt		%1				"	\
-			:	"=m" (new_sw), "+m" (fpu.p_regs[TOP]),	\
+			:	"=&am" (new_sw), "+m" (fpu.p_regs[TOP]),	\
 				"=m" (fpu.p_regs[(TOP-1)&7])			\
 		);									\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);		\
@@ -725,7 +725,7 @@
 			"fnstsw		%0				\n"	\
 			"fstpt		%2				\n"	\
 			"fldcw		%1				"	\
-			:	"=m" (new_sw), "=m" (save_cw), "+m" (fpu.p_regs[op1])	\
+			:	"=&am" (new_sw), "=m" (save_cw), "+m" (fpu.p_regs[op1])	\
 			:	"m" (fpu.p_regs[op2]), "m" (fpu.cw_mask_all)		\
 		);									\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);
@@ -757,7 +757,7 @@
 			"fnstsw		%0				\n"	\
 			"fstpt		%2				\n"	\
 			"fldcw		%1				"	\
-			:	"=m" (new_sw), "=m" (save_cw), "+m" (fpu.p_regs[op1])	\
+			:	"=&am" (new_sw), "=m" (save_cw), "+m" (fpu.p_regs[op1])	\
 			:	"m" (fpu.cw_mask_all)		\
 		);									\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);
@@ -789,7 +789,7 @@
 			"fnstsw		%0				\n"	\
 			"fstpt		%2				\n"	\
 			"fldcw		%1				"	\
-			:	"=m" (new_sw), "=m" (save_cw), "+m" (fpu.p_regs[TOP])	\
+			:	"=&am" (new_sw), "=m" (save_cw), "+m" (fpu.p_regs[TOP])	\
 			:	"m" (fpu.cw_mask_all)		\
 		);										\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);
@@ -812,7 +812,7 @@
 			"fnstsw		%0				\n"	\
 			"fstpt		%1				\n"	\
 			"fstp		%%st(0)			"	\
-			:	"=m" (new_sw), "+m" (fpu.p_regs[TOP])	\
+			:	"=&am" (new_sw), "+m" (fpu.p_regs[TOP])	\
 			:	"m" (fpu.p_regs[(TOP+1)&7])				\
 		);									\
 		fpu.sw=(new_sw&0xffbf)|(fpu.sw&0x80ff);
@@ -826,7 +826,7 @@
 			clx" 						\n"	\
 			#op" 						\n"	\
 			"fnstsw		%0				"	\
-			:	"=m" (new_sw)				\
+			:	"=&am" (new_sw)				\
 			:	"m" (fpu.p_regs[op1]), "m" (fpu.p_regs[op2])	\
 		);									\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);
@@ -839,7 +839,7 @@
 			clx" 						\n"	\
 			#op" 						\n"	\
 			"fnstsw		%0				"	\
-			:	"=m" (new_sw)				\
+			:	"=&am" (new_sw)				\
 			:	"m" (fpu.p_regs[op1])		\
 		);									\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);
@@ -853,7 +853,7 @@
 			#op" 						\n"	\
 			"fnstsw		%0				\n"	\
 			"fstp		%%st(0)			"	\
-			:	"=m" (new_sw)				\
+			:	"=&am" (new_sw)				\
 			:	"m" (fpu.p_regs[TOP])		\
 		);									\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);
@@ -880,7 +880,7 @@
 			#op" 						\n"	\
 			"fnstsw		%0				\n"	\
 			"fstpt		%1				\n"	\
-			:	"=m" (new_sw), "+m" (fpu.p_regs[(TOP+1)&7])		\
+			:	"=&am" (new_sw), "+m" (fpu.p_regs[(TOP+1)&7])		\
 			:	"m" (fpu.p_regs[TOP])		\
 		);									\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);		\
@@ -909,7 +909,7 @@
 			#op" 						\n"	\
 			"fnstsw		%0				\n"	\
 			"fstpt		%1				\n"	\
-			:	"=m" (new_sw), "+m" (fpu.p_regs[(TOP+1)&7])		\
+			:	"=&am" (new_sw), "+m" (fpu.p_regs[(TOP+1)&7])		\
 			:	"m" (fpu.p_regs[TOP]) 		\
 		);									\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);		\
