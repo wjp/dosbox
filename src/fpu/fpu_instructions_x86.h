@@ -559,7 +559,7 @@
 			:	"=m" (new_sw), "=m" (fpu.p_regs[store_to])		\
 			:	"m" (fpu.p_regs[8])			\
 		);									\
-		fpu.sw=(new_sw&0xffbf)|(fpu.sw&0x80ff);
+		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);
 #endif
 
 #ifdef WEAK_EXCEPTIONS
@@ -580,7 +580,7 @@
 			:	"m" (fpu.p_regs[8])			\
 			:								\
 		);									\
-		fpu.sw=(new_sw&0xffbf)|(fpu.sw&0x80ff);
+		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);
 #endif
 
 #ifdef WEAK_EXCEPTIONS
@@ -602,7 +602,7 @@
 			"fnstcw		%1				\n"	\
 			"fldcw		%4				\n"	\
 			"fldt		%3				\n"	\
-			clx" 						\n"	\
+			"fclex 						\n"	\
 			#op #szA "	%2				\n"	\
 			"fnstsw		%0				\n"	\
 			"fldcw		%1				"	\
@@ -693,7 +693,7 @@
 			:	"=m" (new_sw), "+m" (fpu.p_regs[TOP]),	\
 				"=m" (fpu.p_regs[(TOP-1)&7])			\
 		);									\
-		fpu.sw=(new_sw&0xffbf)|(fpu.sw&0x80ff);		\
+		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);		\
 		FPU_PREP_PUSH();
 #endif
 
@@ -720,7 +720,7 @@
 			"fldcw		%4				\n"	\
 			"fldt		%3				\n"	\
 			"fldt		%2				\n"	\
-			clx" 						\n"	\
+			"fclex 						\n"	\
 			#op"						\n"	\
 			"fnstsw		%0				\n"	\
 			"fstpt		%2				\n"	\
@@ -752,7 +752,7 @@
 			"fnstcw		%1				\n"	\
 			"fldcw		%3				\n"	\
 			"fldt		%2				\n"	\
-			clx" 						\n"	\
+			"fclex 						\n"	\
 			#op"						\n"	\
 			"fnstsw		%0				\n"	\
 			"fstpt		%2				\n"	\
@@ -784,7 +784,7 @@
 			"fnstcw		%1				\n"	\
 			"fldcw		%3				\n"	\
 			"fldt		%2				\n"	\
-			clx" 						\n"	\
+			"fclex 						\n"	\
 			#op" 						\n"	\
 			"fnstsw		%0				\n"	\
 			"fstpt		%2				\n"	\
@@ -883,7 +883,7 @@
 			:	"=m" (new_sw), "+m" (fpu.p_regs[(TOP+1)&7])		\
 			:	"m" (fpu.p_regs[TOP])		\
 		);									\
-		fpu.sw=(new_sw&0xffbf)|(fpu.sw&0x80ff);		\
+		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);		\
 		FPU_FPOP();
 #endif
 
@@ -912,7 +912,7 @@
 			:	"=m" (new_sw), "+m" (fpu.p_regs[(TOP+1)&7])		\
 			:	"m" (fpu.p_regs[TOP]) 		\
 		);									\
-		fpu.sw=(new_sw&0xffbf)|(fpu.sw&0x80ff);		\
+		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);		\
 		FPU_FPOP();
 #endif
 
