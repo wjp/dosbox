@@ -532,6 +532,8 @@
 
 #else
 
+// !defined _MSC_VER
+
 #ifdef WEAK_EXCEPTIONS
 #define clx
 #else
@@ -541,28 +543,21 @@
 #ifdef WEAK_EXCEPTIONS
 #define FPUD_LOAD(op,szI,szA)				\
 		__asm__ volatile (					\
-			"movl		$128, %%eax		\n"	\
-			"shl		$4, %0			\n"	\
-			#op #szA "	(%1, %%eax)		\n"	\
-			"fstpt		(%1, %0)		"	\
-			:								\
-			:	"r" (store_to), "r" (fpu.p_regs)	\
-			:	"eax", "memory"						\
+			#op #szA "	%1				\n"	\
+			"fstpt		%0				"	\
+			:	"=m" (fpu.p_regs[store_to])	\
+			:	"m" (fpu.p_regs[8])			\
 		);
 #else
 #define FPUD_LOAD(op,szI,szA)				\
 		Bit16u new_sw;						\
 		__asm__ volatile (					\
-			"movl		$8, %%eax		\n"	\
-			"shl		$4, %%eax		\n"	\
-			"shl		$4, %1			\n"	\
 			"fclex						\n"	\
-			#op #szA "	(%2, %%eax)		\n"	\
+			#op #szA "	%2				\n"	\
 			"fnstsw		%0				\n"	\
-			"fstpt		(%2, %1)		"	\
-			:	"=m" (new_sw)				\
-			:	"r" (store_to), "r" (fpu.p_regs)	\
-			:	"eax", "memory"						\
+			"fstpt		%1				"	\
+			:	"=m" (new_sw), "=m" (fpu.p_regs[store_to])		\
+			:	"m" (fpu.p_regs[8])			\
 		);									\
 		fpu.sw=(new_sw&0xffbf)|(fpu.sw&0x80ff);
 #endif
@@ -570,24 +565,20 @@
 #ifdef WEAK_EXCEPTIONS
 #define FPUD_LOAD_EA(op,szI,szA)			\
 		__asm__ volatile (					\
-			"movl		$128, %%eax		\n"	\
-			#op #szA "	(%0, %%eax)		\n"	\
+			#op #szA "	%0				\n"	\
 			:								\
-			:	"r" (fpu.p_regs)			\
-			:	"eax", "memory"				\
+			:	"m" (fpu.p_regs[8])			\
 		);
 #else
 #define FPUD_LOAD_EA(op,szI,szA)			\
 		Bit16u new_sw;						\
 		__asm__ volatile (					\
-			"movl		$8, %%eax		\n"	\
-			"shl		$4, %%eax		\n"	\
 			"fclex						\n"	\
-			#op #szA "	(%1, %%eax)		\n"	\
+			#op #szA "	%1				\n"	\
 			"fnstsw		%0				\n"	\
 			:	"=m" (new_sw)				\
-			:	"r" (fpu.p_regs)			\
-			:	"eax", "memory"				\
+			:	"m" (fpu.p_regs[8])			\
+			:								\
 		);									\
 		fpu.sw=(new_sw&0xffbf)|(fpu.sw&0x80ff);
 #endif
@@ -597,15 +588,12 @@
 		Bit16u save_cw;						\
 		__asm__ volatile (					\
 			"fnstcw		%0				\n"	\
-			"shll		$4, %1			\n"	\
 			"fldcw		%3				\n"	\
-			"movl		$128, %%eax		\n"	\
-			"fldt		(%2, %1)		\n"	\
-			#op #szA "	(%2, %%eax)		\n"	\
+			"fldt		%2				\n"	\
+			#op #szA "	%1				\n"	\
 			"fldcw		%0				"	\
-			:	"=m" (save_cw)				\
-			:	"r" (TOP), "r" (fpu.p_regs), "m" (fpu.cw_mask_all)		\
-			:	"eax", "memory"						\
+			:	"=m" (save_cw), "=m" (fpu.p_regs[8])	\
+			:	"m" (fpu.p_regs[TOP]), "m" (fpu.cw_mask_all)		\
 		);
 #else
 #define FPUD_STORE(op,szI,szA)				\
@@ -613,18 +601,14 @@
 		__asm__ volatile (					\
 			"fnstcw		%1				\n"	\
 			"fldcw		%4				\n"	\
-			"shll		$4, %2			\n"	\
-			"movl		$8, %%eax		\n"	\
-			"shl		$4, %%eax		\n"	\
-			"fldt		(%3, %2)		\n"	\
+			"fldt		%3				\n"	\
 			clx" 						\n"	\
-			#op #szA "	(%3, %%eax)		\n"	\
+			#op #szA "	%2				\n"	\
 			"fnstsw		%0				\n"	\
 			"fldcw		%1				"	\
-			:	"=m" (new_sw), "=m" (save_cw)	\
-			:	"r" (TOP), "r" (fpu.p_regs), "m" (fpu.cw_mask_all)		\
-			:	"eax", "memory"						\
-		);										\
+			:	"=m" (new_sw), "=m" (save_cw), "=m" (fpu.p_regs[8])	\
+			:	"m" (fpu.p_regs[TOP]), "m" (fpu.cw_mask_all)			\
+		);									\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);
 #endif
 
