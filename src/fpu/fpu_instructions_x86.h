@@ -727,36 +727,30 @@
 		Bit16u save_cw;						\
 		__asm__ volatile (					\
 			"fnstcw		%0				\n"	\
-			"fldcw		%4				\n"	\
-			"shll		$4, %2			\n"	\
-			"shll		$4, %1			\n"	\
-			"fldt		(%3, %2)		\n"	\
-			"fldt		(%3, %1)		\n"	\
+			"fldcw		%3				\n"	\
+			"fldt		%2				\n"	\
+			"fldt		%1				\n"	\
 			#op"						\n"	\
-			"fstpt		(%3, %1)		\n"	\
+			"fstpt		%1				\n"	\
 			"fldcw		%0				"	\
-			:	"=m" (save_cw)		\
-			:	"r" (op1), "r" (op2), "r" (fpu.p_regs), "m" (fpu.cw_mask_all)		\
-			:	"memory"				\
+			:	"=m" (save_cw), "+m" (fpu.p_regs[op1])				\
+			:	"m" (fpu.p_regs[op2]), "m" (fpu.cw_mask_all)		\
 		);
 #else
 #define FPUD_ARITH1(op)						\
 		Bit16u new_sw,save_cw;				\
 		__asm__ volatile (					\
 			"fnstcw		%1				\n"	\
-			"fldcw		%5				\n"	\
-			"shll		$4, %3			\n"	\
-			"shll		$4, %2			\n"	\
-			"fldt		(%4, %3)		\n"	\
-			"fldt		(%4, %2)		\n"	\
+			"fldcw		%4				\n"	\
+			"fldt		%3				\n"	\
+			"fldt		%2				\n"	\
 			clx" 						\n"	\
 			#op"						\n"	\
 			"fnstsw		%0				\n"	\
-			"fstpt		(%4, %2)		\n"	\
+			"fstpt		%2				\n"	\
 			"fldcw		%1				"	\
-			:	"=m" (new_sw), "=m" (save_cw)		\
-			:	"r" (op1), "r" (op2), "r" (fpu.p_regs), "m" (fpu.cw_mask_all)		\
-			:	"memory"				\
+			:	"=m" (new_sw), "=m" (save_cw), "+m" (fpu.p_regs[op1])	\
+			:	"m" (fpu.p_regs[op2]), "m" (fpu.cw_mask_all)		\
 		);									\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);
 #endif
@@ -767,32 +761,28 @@
 		Bit16u save_cw;						\
 		__asm__ volatile (					\
 			"fnstcw		%0				\n"	\
-			"fldcw		%3				\n"	\
-			"shll		$4, %1			\n"	\
-			"fldt		(%2, %1)		\n"	\
+			"fldcw		%2				\n"	\
+			"fldt		%1				\n"	\
 			#op"						\n"	\
-			"fstpt		(%2, %1)		\n"	\
+			"fstpt		%1				\n"	\
 			"fldcw		%0				"	\
-			:	"=m" (save_cw)		\
-			:	"r" (op1), "r" (fpu.p_regs), "m" (fpu.cw_mask_all)		\
-			:	"memory"				\
+			:	"=m" (save_cw), "+m" (fpu.p_regs[op1])		\
+			:	"m" (fpu.cw_mask_all)		\
 		);
 #else
 #define FPUD_ARITH1_EA(op)					\
 		Bit16u new_sw,save_cw;				\
 		__asm__ volatile (					\
 			"fnstcw		%1				\n"	\
-			"fldcw		%4				\n"	\
-			"shll		$4, %2			\n"	\
-			"fldt		(%3, %2)		\n"	\
+			"fldcw		%3				\n"	\
+			"fldt		%2				\n"	\
 			clx" 						\n"	\
 			#op"						\n"	\
 			"fnstsw		%0				\n"	\
-			"fstpt		(%3, %2)		\n"	\
+			"fstpt		%2				\n"	\
 			"fldcw		%1				"	\
-			:	"=m" (new_sw), "=m" (save_cw)		\
-			:	"r" (op1), "r" (fpu.p_regs), "m" (fpu.cw_mask_all)		\
-			:	"memory"				\
+			:	"=m" (new_sw), "=m" (save_cw), "+m" (fpu.p_regs[op1])	\
+			:	"m" (fpu.cw_mask_all)		\
 		);									\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);
 #endif
@@ -803,111 +793,37 @@
 		Bit16u save_cw;						\
 		__asm__ volatile (					\
 			"fnstcw		%0				\n"	\
-			"fldcw		%3				\n"	\
-			"shll		$4, %1			\n"	\
-			"fldt		(%2, %1)		\n"	\
+			"fldcw		%2				\n"	\
+			"fldt		%1				\n"	\
 			#op" 						\n"	\
-			"fstpt		(%2, %1)		\n"	\
+			"fstpt		%1				\n"	\
 			"fldcw		%0				"	\
-			:	"=m" (save_cw)				\
-			:	"r" (TOP), "r" (fpu.p_regs), "m" (fpu.cw_mask_all)		\
-			:	"memory"				\
+			:	"=m" (save_cw), "+m" (fpu.p_regs[TOP])		\
+			:	"m" (fpu.cw_mask_all)		\
 		);
 #else
 #define FPUD_ARITH2(op)						\
 		Bit16u new_sw,save_cw;				\
 		__asm__ volatile (					\
 			"fnstcw		%1				\n"	\
-			"fldcw		%4				\n"	\
-			"shll		$4, %2			\n"	\
-			"fldt		(%3, %2)		\n"	\
+			"fldcw		%3				\n"	\
+			"fldt		%2				\n"	\
 			clx" 						\n"	\
 			#op" 						\n"	\
 			"fnstsw		%0				\n"	\
-			"fstpt		(%3, %2)		\n"	\
+			"fstpt		%2				\n"	\
 			"fldcw		%1				"	\
-			:	"=m" (new_sw), "=m" (save_cw)	\
-			:	"r" (TOP), "r" (fpu.p_regs), "m" (fpu.cw_mask_all)		\
-			:	"memory"				\
+			:	"=m" (new_sw), "=m" (save_cw), "+m" (fpu.p_regs[TOP])	\
+			:	"m" (fpu.cw_mask_all)		\
 		);										\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);
 #endif
 
 // handles fdiv,fdivr
-#ifdef WEAK_EXCEPTIONS
-#define FPUD_ARITH3(op)						\
-		Bit16u save_cw;						\
-		__asm__ volatile (					\
-			"fnstcw		%0				\n"	\
-			"fldcw		%4				\n"	\
-			"shll		$4, %2			\n"	\
-			"shll		$4, %1			\n"	\
-			"fldt		(%3, %2)		\n"	\
-			"fldt		(%3, %1)		\n"	\
-			#op"						\n"	\
-			"fstpt		(%3, %1)		\n"	\
-			"fldcw		%0				"	\
-			:	"=m" (save_cw)				\
-			:	"r" (op1), "r" (op2), "r" (fpu.p_regs), "m" (fpu.cw_mask_all)		\
-			:	"memory"					\
-		);
-#else
-#define FPUD_ARITH3(op)						\
-		Bit16u new_sw,save_cw;				\
-		__asm__ volatile (					\
-			"fnstcw		%1				\n"	\
-			"fldcw		%5				\n"	\
-			"shll		$4, %3			\n"	\
-			"shll		$4, %2			\n"	\
-			"fldt		(%4, %3)		\n"	\
-			"fldt		(%4, %2)		\n"	\
-			"fclex						\n"	\
-			#op"						\n"	\
-			"fnstsw		%0				\n"	\
-			"fstpt		(%4, %2)		\n"	\
-			"fldcw		%1				"	\
-			:	"=m" (new_sw), "=m" (save_cw)		\
-			:	"r" (op1), "r" (op2), "r" (fpu.p_regs), "m" (fpu.cw_mask_all)		\
-			:	"memory"					\
-		);									\
-		fpu.sw=(new_sw&0xffbf)|(fpu.sw&0x80ff);
-#endif
+#define FPUD_ARITH3(op) FPUD_ARITH1(op)
 
 // handles fdiv,fdivr
-#ifdef WEAK_EXCEPTIONS
-#define FPUD_ARITH3_EA(op)					\
-		Bit16u save_cw;						\
-		__asm__ volatile (					\
-			"fnstcw		%0				\n"	\
-			"fldcw		%3				\n"	\
-			"shll		$4, %1			\n"	\
-			"fldt		(%2, %1)		\n"	\
-			#op"						\n"	\
-			"fstpt		(%2, %1)		\n"	\
-			"fldcw		%0				"	\
-			:	"=m" (save_cw)				\
-			:	"r" (op1), "r" (fpu.p_regs), "m" (fpu.cw_mask_all)		\
-			:	"memory"					\
-		);
-#else
-#define FPUD_ARITH3_EA(op)					\
-		Bit16u new_sw,save_cw;				\
-		__asm__ volatile (					\
-			"fnstcw		%1				\n"	\
-			"fldcw		%4				\n"	\
-			"shll		$4, %2			\n"	\
-			"fldt		(%3, %2)		\n"	\
-			"fclex						\n"	\
-			#op"						\n"	\
-			"fnstsw		%0				\n"	\
-			"fstpt		(%3, %2)		\n"	\
-			"fldcw		%1				"	\
-			:	"=m" (new_sw), "=m" (save_cw)		\
-			:	"r" (op1), "r" (fpu.p_regs), "m" (fpu.cw_mask_all)		\
-			:	"memory"					\
-		);									\
-		fpu.sw=(new_sw&0xffbf)|(fpu.sw&0x80ff);
-#endif
+#define FPUD_ARITH3_EA(op) FPUD_ARITH1_EA(op)
 
 // handles fprem,fprem1,fscale
 #define FPUD_REMINDER(op)					\
