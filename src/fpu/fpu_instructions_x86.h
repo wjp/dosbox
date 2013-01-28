@@ -651,24 +651,20 @@
 #define FPUD_PTAN()						\
 		Bit16u new_sw;						\
 		__asm__ volatile (					\
-			"movl		%1, %%eax		\n"	\
-			"shll		$4, %1			\n"	\
-			"decl		%%eax			\n"	\
-			"andl		$7, %%eax		\n"	\
-			"shll		$4, %%eax		\n"	\
-			"fldt		(%2, %1)		\n"	\
+			"fldt		%1				\n"	\
 			clx" 						\n"	\
 			"fptan 						\n"	\
 			"fnstsw		%0				\n"	\
-			"fstpt		(%2, %%eax)		\n"	\
+			"fstpt		%2				\n"	\
 			"movw		%0, %%ax		\n"	\
 			"sahf						\n"	\
 			"jp			1f				\n"	\
-			"fstpt		(%2, %1)		\n"	\
+			"fstpt		%1				\n"	\
 			"1:							"	\
-			:	"=m" (new_sw)				\
-			:	"r" (TOP), "r" (fpu.p_regs)	\
-			:	"eax", "cc", "memory"		\
+			:	"=m" (new_sw), "+m" (fpu.p_regs[TOP]),	\
+				"=m" (fpu.p_regs[(TOP-1)&7])			\
+			:								\
+			:	"ax", "cc"					\
 		);									\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);		\
 		if ((new_sw&0x0400)==0) FPU_PREP_PUSH();
