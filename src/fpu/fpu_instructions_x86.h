@@ -677,38 +677,25 @@
 #ifdef WEAK_EXCEPTIONS
 #define FPUD_XTRACT						\
 		__asm__ volatile (					\
-			"movl		%0, %%eax		\n"	\
-			"shll		$4, %0			\n"	\
-			"decl		%%eax			\n"	\
-			"andl		$7, %%eax		\n"	\
-			"shll		$4, %%eax		\n"	\
-			"fldt		(%1, %0)		\n"	\
+			"fldt		%0				\n"	\
 			"fxtract					\n"	\
-			"fstpt		(%1, %%eax)		\n"	\
-			"fstpt		(%1, %0)		"	\
-			:								\
-			:	"r" (TOP), "r" (fpu.p_regs)	\
-			:	"eax", "memory"				\
+			"fstpt		%1				\n"	\
+			"fstpt		%0				"	\
+			:	"+m" (fpu.p_regs[TOP]), "=m" (fpu.p_regs[(TOP-1)&7])	\
 		);									\
 		FPU_PREP_PUSH();
 #else
 #define FPUD_XTRACT						\
 		Bit16u new_sw;						\
 		__asm__ volatile (					\
-			"movl		%1, %%eax		\n"	\
-			"shll		$4, %1			\n"	\
-			"decl		%%eax			\n"	\
-			"andl		$7, %%eax		\n"	\
-			"shll		$4, %%eax		\n"	\
-			"fldt		(%2, %1)		\n"	\
+			"fldt		%1				\n"	\
 			"fclex						\n"	\
 			"fxtract					\n"	\
 			"fnstsw		%0				\n"	\
-			"fstpt		(%2, %%eax)		\n"	\
-			"fstpt		(%2, %1)		"	\
-			:	"=m" (new_sw)				\
-			:	"r" (TOP), "r" (fpu.p_regs)	\
-			:	"eax", "memory"						\
+			"fstpt		%2				\n"	\
+			"fstpt		%1				"	\
+			:	"=m" (new_sw), "+m" (fpu.p_regs[TOP]),	\
+				"=m" (fpu.p_regs[(TOP-1)&7])			\
 		);									\
 		fpu.sw=(new_sw&0xffbf)|(fpu.sw&0x80ff);		\
 		FPU_PREP_PUSH();
