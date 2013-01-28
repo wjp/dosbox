@@ -968,13 +968,10 @@
 #define FPUD_LOAD_CONST(op)				\
 		FPU_PREP_PUSH();					\
 		__asm__ volatile (					\
-			"shll		$4, %0			\n"	\
 			clx" 						\n"	\
 			#op" 						\n"	\
-			"fstpt		(%1, %0)		\n"	\
-			:								\
-			:	"r" (TOP), "r" (fpu.p_regs)	\
-			:	"memory"					\
+			"fstpt		%0				\n"	\
+			:	"=m" (fpu.p_regs[TOP])		\
 		);
 
 #endif
