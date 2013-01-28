@@ -829,21 +829,15 @@
 #define FPUD_REMAINDER(op)					\
 		Bit16u new_sw;						\
 		__asm__ volatile (					\
-			"movl		%1, %%eax		\n"	\
-			"incl		%%eax			\n"	\
-			"andl		$7, %%eax		\n"	\
-			"shll		$4, %%eax		\n"	\
-			"shll		$4, %1			\n"	\
-			"fldt		(%2, %%eax)		\n"	\
-			"fldt		(%2, %1)		\n"	\
+			"fldt		%2				\n"	\
+			"fldt		%1				\n"	\
 			"fclex						\n"	\
 			#op" 						\n"	\
 			"fnstsw		%0				\n"	\
-			"fstpt		(%2, %1)		\n"	\
+			"fstpt		%1				\n"	\
 			"fstp		%%st(0)			"	\
-			:	"=m" (new_sw)				\
-			:	"r" (TOP), "r" (fpu.p_regs)	\
-			:	"eax", "memory"						\
+			:	"=m" (new_sw), "+m" (fpu.p_regs[TOP])	\
+			:	"m" (fpu.p_regs[(TOP+1)&7])				\
 		);									\
 		fpu.sw=(new_sw&0xffbf)|(fpu.sw&0x80ff);
 
@@ -851,16 +845,13 @@
 #define FPUD_COMPARE(op)					\
 		Bit16u new_sw;						\
 		__asm__ volatile (					\
-			"shll		$4, %2			\n"	\
-			"shll		$4, %1			\n"	\
-			"fldt		(%3, %2)		\n"	\
-			"fldt		(%3, %1)		\n"	\
+			"fldt		%2				\n"	\
+			"fldt		%1				\n"	\
 			clx" 						\n"	\
 			#op" 						\n"	\
 			"fnstsw		%0				"	\
 			:	"=m" (new_sw)				\
-			:	"r" (op1), "r" (op2), "r" (fpu.p_regs) 		\
-			:	"memory"					\
+			:	"m" (fpu.p_regs[op1]), "m" (fpu.p_regs[op2])	\
 		);									\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);
 
@@ -868,14 +859,12 @@
 #define FPUD_COMPARE_EA(op)					\
 		Bit16u new_sw;						\
 		__asm__ volatile (					\
-			"shll		$4, %1			\n"	\
-			"fldt		(%2, %1)		\n"	\
+			"fldt		%1				\n"	\
 			clx" 						\n"	\
 			#op" 						\n"	\
 			"fnstsw		%0				"	\
 			:	"=m" (new_sw)				\
-			:	"r" (op1), "r" (fpu.p_regs) 		\
-			:	"memory"					\
+			:	"m" (fpu.p_regs[op1])		\
 		);									\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);
 
@@ -883,15 +872,13 @@
 #define FPUD_EXAMINE(op)					\
 		Bit16u new_sw;						\
 		__asm__ volatile (					\
-			"shll		$4, %1			\n"	\
-			"fldt		(%2, %1)		\n"	\
+			"fldt		%1				\n"	\
 			clx" 						\n"	\
 			#op" 						\n"	\
 			"fnstsw		%0				\n"	\
 			"fstp		%%st(0)			"	\
 			:	"=m" (new_sw)				\
-			:	"r" (TOP), "r" (fpu.p_regs)	\
-			:	"memory"				\
+			:	"m" (fpu.p_regs[TOP])		\
 		);									\
 		fpu.sw=(new_sw&exc_mask)|(fpu.sw&0x80ff);
 
