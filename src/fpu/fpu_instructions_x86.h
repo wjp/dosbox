@@ -384,7 +384,7 @@
 #endif
 
 // handles fprem,fprem1,fscale
-#define FPUD_REMINDER(op)			\
+#define FPUD_REMAINDER(op)			\
 		Bit16u new_sw;				\
 		__asm {						\
 		__asm	mov		eax, TOP	\
@@ -826,7 +826,7 @@
 #define FPUD_ARITH3_EA(op) FPUD_ARITH1_EA(op)
 
 // handles fprem,fprem1,fscale
-#define FPUD_REMINDER(op)					\
+#define FPUD_REMAINDER(op)					\
 		Bit16u new_sw;						\
 		__asm__ volatile (					\
 			"movl		%1, %%eax		\n"	\
@@ -1253,11 +1253,11 @@ static void FPU_FRNDINT(void){
 }
 
 static void FPU_FPREM(void){
-	FPUD_REMINDER(fprem)
+	FPUD_REMAINDER(fprem)
 }
 
 static void FPU_FPREM1(void){
-	FPUD_REMINDER(fprem1)
+	FPUD_REMAINDER(fprem1)
 }
 
 static void FPU_FXAM(void){
@@ -1282,7 +1282,7 @@ static void FPU_FYL2XP1(void){
 }
 
 static void FPU_FSCALE(void){
-	FPUD_REMINDER(fscale)
+	FPUD_REMAINDER(fscale)
 }
 
 
