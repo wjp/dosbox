@@ -312,23 +312,7 @@
 #endif
 
 // handles fdiv,fdivr
-#ifdef WEAK_EXCEPTIONS
-#define FPUD_ARITH3(op)						\
-		Bit16u save_cw;						\
-		__asm {								\
-		__asm	fnstcw	save_cw				\
-		__asm	mov		eax, op1			\
-		__asm	shl		eax, 4				\
-		__asm	fldcw	fpu.cw_mask_all		\
-		__asm	mov		ebx, op2			\
-		__asm	shl		ebx, 4				\
-		__asm	fld		TBYTE PTR fpu.p_regs[eax].m1	\
-		__asm	fld		TBYTE PTR fpu.p_regs[ebx].m1	\
-		__asm	op		st(1), st(0)		\
-		__asm	fstp	TBYTE PTR fpu.p_regs[eax].m1	 \
-		__asm	fldcw	save_cw				\
-		}
-#else
+// (This is identical to FPUD_ARITH1 but without a WEAK_EXCEPTIONS variant)
 #define FPUD_ARITH3(op)						\
 		Bit16u new_sw,save_cw;				\
 		__asm {								\
@@ -347,24 +331,9 @@
 		__asm	fldcw	save_cw				\
 		}									\
 		fpu.sw=(new_sw&0xffbf)|(fpu.sw&0x80ff);
-#endif
 
 // handles fdiv,fdivr
-#ifdef WEAK_EXCEPTIONS
-#define FPUD_ARITH3_EA(op)					\
-		Bit16u save_cw;						\
-		__asm {								\
-		__asm	fnstcw	save_cw				\
-		__asm	mov		eax, op1			\
-		__asm	fldcw	fpu.cw_mask_all		\
-		__asm	shl		eax, 4				\
-		__asm	fld		TBYTE PTR fpu.p_regs[eax].m1	\
-		__asm	fxch	\
-		__asm	op		st(1), st(0)		\
-		__asm	fstp	TBYTE PTR fpu.p_regs[eax].m1	 \
-		__asm	fldcw	save_cw				\
-		}
-#else
+// (This is identical to FPUD_ARITH1_EA but without a WEAK_EXCEPTIONS variant)
 #define FPUD_ARITH3_EA(op)					\
 		Bit16u new_sw,save_cw;				\
 		__asm {								\
@@ -381,7 +350,6 @@
 		__asm	fldcw	save_cw				\
 		}									\
 		fpu.sw=(new_sw&0xffbf)|(fpu.sw&0x80ff);
-#endif
 
 // handles fprem,fprem1,fscale
 #define FPUD_REMAINDER(op)			\
@@ -796,10 +764,41 @@
 #endif
 
 // handles fdiv,fdivr
-#define FPUD_ARITH3(op) FPUD_ARITH1(op)
+// (This is identical to FPUD_ARITH1 but without a WEAK_EXCEPTIONS variant)
+#define FPUD_ARITH3(op)						\
+		Bit16u new_sw,save_cw;				\
+		__asm__ volatile (					\
+			"fnstcw		%1				\n"	\
+			"fldcw		%4				\n"	\
+			"fldt		%3				\n"	\
+			"fldt		%2				\n"	\
+			"fclex 						\n"	\
+			#op"						\n"	\
+			"fnstsw		%0				\n"	\
+			"fstpt		%2				\n"	\
+			"fldcw		%1				"	\
+			:	"=&am" (new_sw), "=m" (save_cw), "+m" (fpu.p_regs[op1])	\
+			:	"m" (fpu.p_regs[op2]), "m" (fpu.cw_mask_all)		\
+		);									\
+		fpu.sw=(new_sw&0xffbf)|(fpu.sw&0x80ff);
 
 // handles fdiv,fdivr
-#define FPUD_ARITH3_EA(op) FPUD_ARITH1_EA(op)
+// (This is identical to FPUD_ARITH1_EA but without a WEAK_EXCEPTIONS variant)
+#define FPUD_ARITH3_EA(op)					\
+		Bit16u new_sw,save_cw;				\
+		__asm__ volatile (					\
+			"fnstcw		%1				\n"	\
+			"fldcw		%3				\n"	\
+			"fldt		%2				\n"	\
+			"fclex 						\n"	\
+			#op"						\n"	\
+			"fnstsw		%0				\n"	\
+			"fstpt		%2				\n"	\
+			"fldcw		%1				"	\
+			:	"=&am" (new_sw), "=m" (save_cw), "+m" (fpu.p_regs[op1])	\
+			:	"m" (fpu.cw_mask_all)		\
+		);									\
+		fpu.sw=(new_sw&0xffbf)|(fpu.sw&0x80ff);
 
 // handles fprem,fprem1,fscale
 #define FPUD_REMAINDER(op)					\
