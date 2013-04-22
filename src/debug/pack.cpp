@@ -1,3 +1,6 @@
+#include <pro.h>
+typedef uint32 ulong; // ulong is disabled under windows when using NO_OBSOLETE_FUNCS
+
 #define QBUFCHECK(x,y,z) ;
 
 inline uchar *pack_db(uchar *ptr, uchar *end, uchar x)

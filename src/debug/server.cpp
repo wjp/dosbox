@@ -380,8 +380,7 @@ bool DEBUG_RemoteDataReady(void) //FIXME need to rework this.
   return false;
 }
 
-idaman callui_t dummy_callui(ui_notification_t what,...);
-idaman callui_t ida_export_data /*idaapi*/ dummy_callui(ui_notification_t what, ...)
+idaman callui_t idaapi dummy_callui(ui_notification_t what, ...)
 {
   // TODO: Maybe implement at least ui_msg?
   callui_t i;
@@ -409,7 +408,7 @@ int dosbox_rpc_server_t::poll_events(int timeout_ms)
 }
 
 
-
+typedef int socklen_t; // get includes errors when including wsocktcp.h
 
 int idados_start_session()
 {
