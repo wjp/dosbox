@@ -146,7 +146,6 @@
     <ClCompile Include="..\..\idasdk64\plugins\debugger\rpc_server.cpp" />
     <ClCompile Include="..\..\idasdk64\plugins\debugger\tcpip.cpp" />
     <ClCompile Include="..\..\idasdk64\plugins\debugger\util.cpp" />
-    <ClCompile Include="..\src\debug\pack.cpp" />
     <ClCompile Include="..\src\debug\server.cpp" />
     <ClCompile Include="..\src\dosbox.cpp" />
     <ClCompile Include="..\src\cpu\callback.cpp" />
