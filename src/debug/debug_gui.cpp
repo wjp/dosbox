@@ -51,7 +51,7 @@ static FILE* debuglog;
 
 extern int old_cursor_state;
 
-
+DBGBlock dbg; // extern in debug_inc.h - but not definition? added it here
 
 void DEBUG_ShowMsg(char const* format,...) {
 	

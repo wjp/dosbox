@@ -412,7 +412,7 @@ int dosbox_rpc_server_t::poll_events(int timeout_ms)
 }
 
 
-
+typedef int socklen_t; // get includes errors when including wsocktcp.h
 
 int idados_start_session()
 {
