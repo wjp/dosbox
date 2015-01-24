@@ -116,19 +116,21 @@ static INLINE void gen_memaddr(Bitu op,void* data,Bitu off) {
 }
 
 // move a 32bit (dword==true) or 16bit (dword==false) value from memory into dest_reg
-// 16bit moves may destroy the upper 16bit of the destination register
+// 16bit moves destroy (zero) the upper 16bit of the destination register
 static void gen_mov_word_to_reg(HostReg dest_reg,void* data,bool dword) {
-	if (!dword) cache_addb(0x66);
-	cache_addb(0x8b); // mov reg,[data]
+	if (!dword)
+		cache_addw(0xb70f); // movzx reg,[data]
+	else
+		cache_addb(0x8b); // mov reg,[data]
 	gen_reg_memaddr(dest_reg,data);
 } 
 
+
 // move a 16bit constant value into dest_reg
-// the upper 16bit of the destination register may be destroyed
+// the upper 16bit of the destination register are destroyed (zeroed)
 static void gen_mov_word_to_reg_imm(HostReg dest_reg,Bit16u imm) {
-	cache_addb(0x66);
 	cache_addb(0xb8+dest_reg);			// mov reg,imm
-	cache_addw(imm);
+	cache_addd((Bit32u)imm);
 }
 
 // move a 32bit constant value into dest_reg

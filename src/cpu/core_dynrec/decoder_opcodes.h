@@ -1253,6 +1253,8 @@ static void dyn_interrupt(Bit8u num) {
 static void dyn_string(StringOps op) {
 	if (decode.rep) MOV_REG_WORD_TO_HOST_REG(FC_OP1,DRC_REG_ECX,decode.big_addr);
 	else gen_mov_dword_to_reg_imm(FC_OP1,1);
+	// Note: we pass cpu.direction as a Bit32s, even though some of the
+	// DRC functions called below take a Bit16s.
 	gen_mov_word_to_reg(FC_OP2,&cpu.direction,true);
 	Bit8u di_base_addr=decode.seg_prefix_used ? decode.seg_prefix : DRC_SEG_DS;
 	switch (op) {
