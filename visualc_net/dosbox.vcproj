@@ -457,6 +457,9 @@
 					RelativePath="..\src\hardware\font-switch.h">
 				</File>
 				<File
+					RelativePath="..\src\hardware\hardopl.cpp">
+				</File>
+				<File
 					RelativePath="..\src\hardware\hardware.cpp">
 				</File>
 				<File

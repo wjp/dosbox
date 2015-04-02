@@ -1533,6 +1533,7 @@ private:
 		else if (!strcasecmp(omode,"opl2")) opl_mode=OPL_opl2;
 		else if (!strcasecmp(omode,"dualopl2")) opl_mode=OPL_dualopl2;
 		else if (!strcasecmp(omode,"opl3")) opl_mode=OPL_opl3;
+		else if (!strcasecmp(omode,"alsa")) opl_mode=OPL_alsa;
 		/* Else assume auto */
 		else {
 			switch (type) {
@@ -1589,6 +1590,9 @@ public:
 		case OPL_dualopl2:
 		case OPL_opl3:
 			OPL_Init(section,oplmode);
+			break;
+		case OPL_alsa:
+			ALSAOPL_Init(sb.hw.base);
 			break;
 		}
 		if (sb.type==SBT_NONE || sb.type==SBT_GB) return;
@@ -1656,6 +1660,7 @@ public:
 
 static SBLASTER* test;
 void SBLASTER_ShutDown(Section* /*sec*/) {
+	ALSAOPL_Cleanup();
 	delete test;	
 }
 
