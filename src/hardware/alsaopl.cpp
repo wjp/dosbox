@@ -112,11 +112,6 @@ static void reset()
 	}
 
 	snd_hwdep_ioctl(_opl, SNDRV_DM_FM_IOCTL_RESET, 0);
-
-#if 0
-	if (_iface != SND_HWDEP_IFACE_OPL2)
-		snd_hwdep_ioctl(_opl, SNDRV_DM_FM_IOCTL_SET_MODE, (void *)SNDRV_DM_FM_MODE_OPL3);
-#endif
 }
 
 static int init()
@@ -152,8 +147,11 @@ printf("Found\n");
 					_iface = found;
 
 					snd_hwdep_ioctl(_opl, SNDRV_DM_FM_IOCTL_RESET, 0);
-					// Set to OPL2 mode for compatibility
-					if (_iface == SND_HWDEP_IFACE_OPL3) {
+					// If available, set the ALSA layer to OPL3 mode
+					if (_iface != SND_HWDEP_IFACE_OPL2) {
+						snd_hwdep_ioctl(_opl, SNDRV_DM_FM_IOCTL_SET_MODE, (void *)SNDRV_DM_FM_MODE_OPL3);
+
+						// But set the hardware itself to OPL2 mode for compatibility
 						struct snd_dm_fm_command cmd;
 						cmd.cmd = OPL3_MODE | OPL3_RIGHT;
 						cmd.val = 0;
