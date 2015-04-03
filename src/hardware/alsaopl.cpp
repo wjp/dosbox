@@ -28,6 +28,7 @@
 // HACK (copied from opl3.h)
 #define OPL3_LEFT 0
 #define OPL3_RIGHT 0x100
+#define OPL3_MODE 0x05
 
 
 snd_hwdep_t *_opl;
@@ -37,7 +38,7 @@ int _iface;
 static void write_hwio(Bitu port,Bitu val,Bitu /*iolen*/) {
 	static Bitu left_reg = 0;
 	static Bitu right_reg = 0;
-	LOG_MSG("write port %x",port);
+	//LOG_MSG("write port %lx",port);
 	switch (port) {
 	case 0x388:
 		left_reg = val & 0xFF;
@@ -68,7 +69,7 @@ static void write_hwio(Bitu port,Bitu val,Bitu /*iolen*/) {
 }
 
 static Bitu read_hwio(Bitu port,Bitu /*iolen*/) {
-	LOG_MSG("read port %x",port);
+	//LOG_MSG("read port %lx",port);
 	switch (port) {
 	case 0x389:
 	case 0x38B:
@@ -102,10 +103,20 @@ const Bit16u oplports[]={
 
 static void reset()
 {
+	// set to OPL3 again
+	if (_iface == SND_HWDEP_IFACE_OPL3) {
+		struct snd_dm_fm_command cmd;
+		cmd.cmd = OPL3_MODE | OPL3_RIGHT;
+		cmd.val = 1;
+		snd_hwdep_ioctl(_opl, SNDRV_DM_FM_IOCTL_COMMAND, &cmd);
+	}
+
 	snd_hwdep_ioctl(_opl, SNDRV_DM_FM_IOCTL_RESET, 0);
+
+#if 0
 	if (_iface != SND_HWDEP_IFACE_OPL2)
 		snd_hwdep_ioctl(_opl, SNDRV_DM_FM_IOCTL_SET_MODE, (void *)SNDRV_DM_FM_MODE_OPL3);
-	//clear();
+#endif
 }
 
 static int init()
@@ -114,10 +125,6 @@ static int init()
 	snd_ctl_t *ctl;
 	snd_hwdep_info_t *info;
 	snd_hwdep_info_alloca(&info);
-
-	int iface = SND_HWDEP_IFACE_OPL3;
-//	if (_type == Config::kOpl2)
-		iface = SND_HWDEP_IFACE_OPL2;
 
 	// Look for OPL hwdep interface
 	while (!snd_card_next(&card) && card >= 0) {
@@ -139,12 +146,20 @@ static int init()
 			if (!snd_hwdep_info(_opl, info)) {
 				int found = snd_hwdep_info_get_iface(info);
 printf("Found: %d\n", found);
-				// OPL3 can be used for (Dual) OPL2 mode
-				if (found == iface || found == SND_HWDEP_IFACE_OPL3) {
+				if (found == SND_HWDEP_IFACE_OPL2 || found == SND_HWDEP_IFACE_OPL3) {
 printf("Found\n");
 					snd_ctl_close(ctl);
 					_iface = found;
-					reset();
+
+					snd_hwdep_ioctl(_opl, SNDRV_DM_FM_IOCTL_RESET, 0);
+					// Set to OPL2 mode for compatibility
+					if (_iface == SND_HWDEP_IFACE_OPL3) {
+						struct snd_dm_fm_command cmd;
+						cmd.cmd = OPL3_MODE | OPL3_RIGHT;
+						cmd.val = 0;
+						snd_hwdep_ioctl(_opl, SNDRV_DM_FM_IOCTL_COMMAND, &cmd);
+					}
+
 					return 0;
 				}
 			}
@@ -193,6 +208,9 @@ void ALSAOPL_Cleanup()
 			delete hwOPL_ReadHandler[i];
 			delete hwOPL_WriteHandler[i];
 		}
+
+		reset();
+
 		hwopl_dirty=false;
 	}
 
