@@ -1,0 +1,61 @@
+--- linux-3.8.13-gentoo/sound/drivers/opl3/opl3_synth.c	2013-02-19 00:58:34.000000000 +0100
++++ linux-3.8.13-gentoo-alsa/sound/drivers/opl3/opl3_synth.c	2015-04-02 22:54:37.808654208 +0200
+@@ -162,6 +162,30 @@
+ #endif
+ 		return snd_opl3_set_connection(opl3, (int) arg);
+ 
++	case SNDRV_DM_FM_IOCTL_COMMAND:
++		{
++			struct snd_dm_fm_command cmd;
++			if (copy_from_user(&cmd, argp, sizeof(struct snd_dm_fm_command)))
++				return -EFAULT;
++			/* TODO: Limit regs? */
++			opl3->command(opl3, cmd.cmd, cmd.val);
++			return 0;
++		}
++	case SNDRV_DM_FM_IOCTL_READ_STATUS:
++		{
++			unsigned char leftright = 0, info = 0;
++			if (copy_from_user(&leftright, argp, sizeof(unsigned char)))
++				return -EFAULT;
++			if (leftright == 0)
++				info = inb(opl3->l_port);
++			else if (opl3->r_port)
++				/* TODO: Is this the right way to detect presence of r_port? */
++				info = inb(opl3->r_port);
++			if (copy_to_user(argp, &info, sizeof(unsigned char)))
++				return -EFAULT;
++			return 0;
++		}
++
+ #ifdef OPL3_SUPPORT_SYNTH
+ 	case SNDRV_DM_FM_IOCTL_CLEAR_PATCHES:
+ 		snd_opl3_clear_patches(opl3);
+--- linux-3.8.13-gentoo/include/uapi/sound/asound_fm.h	2013-02-19 00:58:34.000000000 +0100
++++ linux-3.8.13-gentoo-alsa/include/uapi/sound/asound_fm.h	2015-04-02 22:49:35.716944397 +0200
+@@ -93,6 +93,15 @@
+ };
+ 
+ /*
++ *  FM command data
++ */
++
++struct snd_dm_fm_command {
++	unsigned short cmd;
++	unsigned char val;
++};
++
++/*
+  *  FM mode ioctl settings
+  */
+ 
+@@ -104,6 +113,9 @@
+ #define SNDRV_DM_FM_IOCTL_SET_MODE	_IOW('H', 0x25, int)
+ /* for OPL3 only */
+ #define SNDRV_DM_FM_IOCTL_SET_CONNECTION	_IOW('H', 0x26, int)
++/* Raw commands */
++#define SNDRV_DM_FM_IOCTL_COMMAND	_IOW('H', 0x30, struct snd_dm_fm_command)
++#define SNDRV_DM_FM_IOCTL_READ_STATUS	_IOWR('H', 0x31, unsigned char)
+ /* SBI patch management */
+ #define SNDRV_DM_FM_IOCTL_CLEAR_PATCHES	_IO ('H', 0x40)
+ 
