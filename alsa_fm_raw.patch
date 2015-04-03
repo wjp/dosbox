@@ -1,27 +1,41 @@
 --- linux-3.8.13-gentoo/sound/drivers/opl3/opl3_synth.c	2013-02-19 00:58:34.000000000 +0100
-+++ linux-3.8.13-gentoo-alsa/sound/drivers/opl3/opl3_synth.c	2015-04-02 22:54:37.808654208 +0200
-@@ -162,6 +162,30 @@
++++ linux-3.8.13-gentoo-alsa/sound/drivers/opl3/opl3_synth.c	2015-04-03 20:47:11.566232672 +0200
+@@ -162,6 +162,44 @@
  #endif
  		return snd_opl3_set_connection(opl3, (int) arg);
  
 +	case SNDRV_DM_FM_IOCTL_COMMAND:
 +		{
 +			struct snd_dm_fm_command cmd;
++			int right = 0;
++			unsigned short command;
 +			if (copy_from_user(&cmd, argp, sizeof(struct snd_dm_fm_command)))
 +				return -EFAULT;
++			if (cmd.cmd & OPL3_RIGHT)
++				right = 1;
++			/* TODO: Is this the right way to detect presence of r_port? */
++			if (right && !opl3->r_port)
++				return -EINVAL;
 +			/* TODO: Limit regs? */
-+			opl3->command(opl3, cmd.cmd, cmd.val);
++			command = cmd.cmd & 0xFF;
++			if (right)
++				command |= OPL3_RIGHT;
++			else
++				command |= OPL3_LEFT;
++			opl3->command(opl3, command, cmd.val);
 +			return 0;
 +		}
 +	case SNDRV_DM_FM_IOCTL_READ_STATUS:
 +		{
 +			unsigned char leftright = 0, info = 0;
-+			if (copy_from_user(&leftright, argp, sizeof(unsigned char)))
++			if (copy_from_user(&right, argp, sizeof(unsigned char)))
 +				return -EFAULT;
-+			if (leftright == 0)
++			/* TODO: Is this the right way to detect presence of r_port? */
++			if (right && !opl3->r_port)
++				return -EINVAL;
++			if (right == 0)
 +				info = inb(opl3->l_port);
-+			else if (opl3->r_port)
-+				/* TODO: Is this the right way to detect presence of r_port? */
++			else
 +				info = inb(opl3->r_port);
 +			if (copy_to_user(argp, &info, sizeof(unsigned char)))
 +				return -EFAULT;
