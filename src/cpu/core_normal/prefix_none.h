@@ -901,6 +901,13 @@
 			Bit16u addip=Fetchws();
 			SAVEIP;
 			Push_16(reg_eip);
+
+#if 1
+			char bufff[256];
+			sprintf(bufff, "call2: %04X %08X %08X\n", SegValue(cs), reg_eip, reg_eip+addip);
+			write(7, bufff, strlen(bufff));
+#endif
+
 			reg_eip=(Bit16u)(reg_eip+addip);
 			continue;
 		}
@@ -1120,6 +1127,14 @@
 			case 0x02:										/* CALL Ev */
 				if (rm >= 0xc0 ) {GetEArw;reg_eip=*earw;}
 				else {GetEAa;reg_eip=LoadMw(eaa);}
+
+#if 1
+				{
+					char bufff[256];
+					sprintf(bufff, "call3: %04X %08X %08X\n", SegValue(cs), GETIP, reg_eip);
+					write(7, bufff, strlen(bufff));
+				}
+#endif
 				Push_16(GETIP);
 				continue;
 			case 0x03:										/* CALL Ep */
