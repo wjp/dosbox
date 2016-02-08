@@ -1887,6 +1887,7 @@ static void erasemapperfile() {
 	exit(0);
 }
 
+extern void DumpCoverageMap();
 
 //extern void UI_Init(void);
 int main(int argc, char* argv[]) {
@@ -2124,6 +2125,8 @@ int main(int argc, char* argv[]) {
 	//Force visible mouse to end user. Somehow this sometimes doesn't happen
 	SDL_WM_GrabInput(SDL_GRAB_OFF);
 	SDL_ShowCursor(SDL_ENABLE);
+
+	DumpCoverageMap();
 
 	SDL_Quit();//Let's hope sdl will quit as well when it catches an exception
 	return 0;
