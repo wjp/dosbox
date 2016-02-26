@@ -416,7 +416,7 @@ CBreakpoint* CBreakpoint::AddMemBreakpoint(Bit16u seg, Bit32u off)
 	CBreakpoint* bp = new CBreakpoint();
 	bp->SetAddress		(seg,off);
 	bp->SetOnce			(false);
-	bp->SetType			(BKPNT_MEMORY);
+	bp->SetType			(BKPNT_MEMORY_PROT);
 	BPoints.push_front	(bp);
 	return bp;
 };
@@ -2653,14 +2653,16 @@ bool DEBUG_HeavyIsBreakpoint(void) {
 #ifdef C_IDA_DEBUG
 bool DEBUG_AddBreakPoint(Bit32u address, bool once)
 {
-	CBreakpoint::AddBreakpoint((Bit16u)(address / 0x10), (Bit32u)address % 0x10, once);
+	//CBreakpoint::AddBreakpoint((Bit16u)(address / 0x10), (Bit32u)address % 0x10, once);
+	CBreakpoint::AddBreakpoint((Bit16u)SegPhys(cs), (Bit32u)address, once);
 
 	return true;
 }
 
 bool DEBUG_AddMemBreakPoint(Bit32u address)
 {
-	CBreakpoint::AddMemBreakpoint((Bit16u)(address / 0x10), (Bit32u)address % 0x10);
+	//CBreakpoint::AddMemBreakpoint((Bit16u)(address / 0x10), (Bit32u)address % 0x10);
+	CBreakpoint::AddMemBreakpoint((Bit16u)SegPhys(ds), (Bit32u)address);
 
 	return true;
 }
