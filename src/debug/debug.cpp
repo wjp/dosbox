@@ -2654,7 +2654,7 @@ bool DEBUG_HeavyIsBreakpoint(void) {
 bool DEBUG_AddBreakPoint(Bit32u address, bool once)
 {
 	//CBreakpoint::AddBreakpoint((Bit16u)(address / 0x10), (Bit32u)address % 0x10, once);
-	CBreakpoint::AddBreakpoint((Bit16u)SegPhys(cs), (Bit32u)address, once);
+	CBreakpoint::AddBreakpoint((Bit16u)SegValue(cs), (Bit32u)address, once);
 
 	return true;
 }
@@ -2662,7 +2662,7 @@ bool DEBUG_AddBreakPoint(Bit32u address, bool once)
 bool DEBUG_AddMemBreakPoint(Bit32u address)
 {
 	//CBreakpoint::AddMemBreakpoint((Bit16u)(address / 0x10), (Bit32u)address % 0x10);
-	CBreakpoint::AddMemBreakpoint((Bit16u)SegPhys(ds), (Bit32u)address);
+	CBreakpoint::AddMemBreakpoint((Bit16u)SegValue(ds), (Bit32u)address);
 
 	return true;
 }
