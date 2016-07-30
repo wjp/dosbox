@@ -309,9 +309,9 @@ public:
 	static bool				CheckBreakpoint		(PhysPt adr);
 	static bool				CheckBreakpoint		(Bitu seg, Bitu off);
 	static bool				CheckIntBreakpoint	(PhysPt adr, Bit8u intNr, Bit16u ahValue, Bit16u alValue);
-	static bool				IsBreakpoint		(PhysPt where);
-	static bool				IsBreakpointDrawn	(PhysPt where);
-	static bool				DeleteBreakpoint	(PhysPt where);
+	static CBreakpoint*		FindPhysBreakpoint	(Bit16u seg, Bit32u off, bool once);
+	static bool				IsBreakpoint		(Bit16u seg, Bit32u off);
+	static bool				DeleteBreakpoint	(Bit16u seg, Bit32u off);
 	static bool				DeleteByIndex		(Bit16u index);
 	static void				DeleteAll			(void);
 	static void				ShowList			(void);
@@ -353,6 +353,9 @@ void CBreakpoint::Activate(bool _active)
 				mem_writeb(location,0xCC);
 			};
 		} else {
+			// FIXME: This might break if there are both
+			// temporary and permanent breakpoints at an address
+
 			// Remove 0xCC and set old value
 			if (mem_readb (location)==0xCC) {
 				mem_writeb(location,oldData);
@@ -425,6 +428,14 @@ bool CBreakpoint::CheckBreakpoint(Bitu seg, Bitu off)
 				(BPoints.erase)(i);
 				bp->Activate(false);
 				delete bp;
+			} else {
+				// Also look for once-only breakpoints at this address
+				bp = FindPhysBreakpoint(seg, off, true);
+				if (bp) {
+					BPoints.remove(bp);
+					bp->Activate(false); //??
+					delete bp;
+				}
 			}
 			return true;
 		} 
@@ -517,56 +528,51 @@ bool CBreakpoint::DeleteByIndex(Bit16u index)
 	return false;
 };
 
-bool CBreakpoint::DeleteBreakpoint(PhysPt where) 
+CBreakpoint* CBreakpoint::FindPhysBreakpoint(Bit16u seg, Bit32u off, bool once)
 {
-	// Search matching breakpoint
-	std::list<CBreakpoint*>::iterator i;
-	CBreakpoint* bp;
-	for(i=BPoints.begin(); i != BPoints.end(); i++) {
-		bp = (*i);
-		if ((bp->GetType()==BKPNT_PHYSICAL) && (bp->GetLocation()==where)) {
-			(BPoints.erase)(i);
-			bp->Activate(false);
-			delete bp;
-			return true;
-		}
-	};
-	return false;
-};
+#ifndef C_HEAVY_DEBUG
+	PhysPt adr = GetAddress(seg, off);
+#endif
 
-bool CBreakpoint::IsBreakpoint(PhysPt adr) 
-// is there a breakpoint at address ?
-{
-	// Search matching breakpoint
+	// Search for matching breakpoint
 	std::list<CBreakpoint*>::iterator i;
 	CBreakpoint* bp;
 	for(i=BPoints.begin(); i != BPoints.end(); i++) {
 		bp = (*i);
-		if ((bp->GetType()==BKPNT_PHYSICAL) && (bp->GetSegment()==adr)) {
-			return true;
-		};
-		if ((bp->GetType()==BKPNT_PHYSICAL) && (bp->GetLocation()==adr)) {
-			return true;
-		};
-	};
-	return false;
-};
+#if C_HEAVY_DEBUG
+		// Heavy debugging breakpoints are triggered by matching seg:off
+		bool atLocation = bp->GetSegment() == seg && bp->GetOffset() == off;
+#else
+		// Normal debugging breakpoints are triggered at an address
+		bool atLocation = bp->GetLocation() == adr;
+#endif
 
-bool CBreakpoint::IsBreakpointDrawn(PhysPt adr) 
-// valid breakpoint, that should be drawn ?
+		if (bp->GetType() == BKPNT_PHYSICAL && atLocation && bp->GetOnce() == once)
+			return bp;
+	}
+
+	return 0;
+}
+
+
+// is there a permanent breakpoint at address ?
+bool CBreakpoint::IsBreakpoint(Bit16u seg, Bit32u off)
 {
-	// Search matching breakpoint
-	std::list<CBreakpoint*>::iterator i;
-	CBreakpoint* bp;
-	for(i=BPoints.begin(); i != BPoints.end(); i++) {
-		bp = (*i);
-		if ((bp->GetType()==BKPNT_PHYSICAL) && (bp->GetLocation()==adr)) {
-			// Only draw, if breakpoint is not only once, 
-			return !bp->GetOnce();
-		};
-	};
+	return FindPhysBreakpoint(seg, off, false) != 0;
+}
+
+bool CBreakpoint::DeleteBreakpoint(Bit16u seg, Bit32u off)
+{
+	CBreakpoint* bp = FindPhysBreakpoint(seg, off, false);
+	if (bp) {
+		BPoints.remove(bp);
+		delete bp;
+		return true;
+	}
+
 	return false;
-};
+}
+
 
 void CBreakpoint::ShowList(void)
 {
@@ -620,8 +626,9 @@ static bool StepOver()
 	size=DasmI386(dline, start, reg_eip, cpu.code.big);
 
 	if (strstr(dline,"call") || strstr(dline,"int") || strstr(dline,"loop") || strstr(dline,"rep")) {
-		// TODO: Don't add breakpoint if there's already one here
-		CBreakpoint::AddBreakpoint		(SegValue(cs),reg_eip+size, true);
+		// Don't add a temporary breakpoint if there's already one here
+		if (!CBreakpoint::FindPhysBreakpoint(SegValue(cs), reg_eip+size, true))
+			CBreakpoint::AddBreakpoint(SegValue(cs),reg_eip+size, true);
 		CBreakpoint::ActivateBreakpoints(start, true);
 		debugging=false;
 		DrawCode();
@@ -767,8 +774,7 @@ static void DrawCode(void) {
 				codeViewData.cursorSeg = codeViewData.useCS;
 				codeViewData.cursorOfs = disEIP;
 				saveSel = true;
-			} else if (CBreakpoint::IsBreakpointDrawn(start)) {
-				// FIXME: in heavy debugging, breakpoints are triggered on seg:off
+			} else if (CBreakpoint::IsBreakpoint(codeViewData.useCS, disEIP)) {
 				wattrset(dbg.win_code,COLOR_PAIR(PAIR_GREY_RED));			
 			} else {
 				wattrset(dbg.win_code,0);			
@@ -1667,15 +1673,15 @@ Bit32u DEBUG_CheckKeys(void) {
 				DOSBOX_SetNormalLoop();
 				break;
 		case KEY_F(9):	// Set/Remove Breakpoint
-				{	PhysPt ptr = GetAddress(codeViewData.cursorSeg,codeViewData.cursorOfs);
-					if (CBreakpoint::IsBreakpoint(ptr)) {
-						CBreakpoint::DeleteBreakpoint(ptr);
+				if (CBreakpoint::IsBreakpoint(codeViewData.cursorSeg, codeViewData.cursorOfs)) {
+					if (CBreakpoint::DeleteBreakpoint(codeViewData.cursorSeg, codeViewData.cursorOfs))
 						DEBUG_ShowMsg("DEBUG: Breakpoint deletion success.\n");
-					}
-					else {
-						CBreakpoint::AddBreakpoint(codeViewData.cursorSeg, codeViewData.cursorOfs, false);
-						DEBUG_ShowMsg("DEBUG: Set breakpoint at %04X:%04X\n",codeViewData.cursorSeg,codeViewData.cursorOfs);
-					}
+					else
+						DEBUG_ShowMsg("DEBUG: Failed to delete breakpoint.\n");
+				}
+				else {
+					CBreakpoint::AddBreakpoint(codeViewData.cursorSeg, codeViewData.cursorOfs, false);
+					DEBUG_ShowMsg("DEBUG: Set breakpoint at %04X:%04X\n",codeViewData.cursorSeg,codeViewData.cursorOfs);
 				}
 				break;
 		case KEY_F(10):	// Step over inst
