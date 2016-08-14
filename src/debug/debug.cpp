@@ -305,7 +305,9 @@ public:
 	static CBreakpoint*		AddBreakpoint		(Bit16u seg, Bit32u off, bool once);
 	static CBreakpoint*		AddIntBreakpoint	(Bit8u intNum, Bit16u ah, Bit16u al, bool once);
 	static CBreakpoint*		AddMemBreakpoint	(Bit16u seg, Bit32u off);
-	static void				ActivateBreakpoints	(PhysPt adr, bool activate);
+	static void				DeactivateBreakpoints();
+	static void				ActivateBreakpoints	();
+	static void				ActivateBreakpointsExceptAt(PhysPt adr);
 	static bool				CheckBreakpoint		(PhysPt adr);
 	static bool				CheckBreakpoint		(Bitu seg, Bitu off);
 	static bool				CheckIntBreakpoint	(PhysPt adr, Bit8u intNr, Bit16u ahValue, Bit16u alValue);
@@ -397,19 +399,32 @@ CBreakpoint* CBreakpoint::AddMemBreakpoint(Bit16u seg, Bit32u off)
 	return bp;
 };
 
-void CBreakpoint::ActivateBreakpoints(PhysPt adr, bool activate)
+void CBreakpoint::ActivateBreakpoints()
 {
 	// activate all breakpoints
 	std::list<CBreakpoint*>::iterator i;
-	CBreakpoint* bp;
-	for(i=BPoints.begin(); i != BPoints.end(); i++) {
-		bp = (*i);
-		// Do not activate, when bp is an actual address
-		if (activate && (bp->GetType()==BKPNT_PHYSICAL) && (bp->GetLocation()==adr)) {
-			// Do not activate :)
+	for (i = BPoints.begin(); i != BPoints.end(); i++)
+		(*i)->Activate(true);
+}
+
+void CBreakpoint::DeactivateBreakpoints()
+{
+	// deactivate all breakpoints
+	std::list<CBreakpoint*>::iterator i;
+	for (i = BPoints.begin(); i != BPoints.end(); i++)
+		(*i)->Activate(false);
+}
+
+void CBreakpoint::ActivateBreakpointsExceptAt(PhysPt adr)
+{
+	// activate all breakpoints, except those at adr
+	std::list<CBreakpoint*>::iterator i;
+	for (i = BPoints.begin(); i != BPoints.end(); i++) {
+		CBreakpoint* bp = (*i);
+		// Do not activate breakpoints at adr
+		if (bp->GetType() == BKPNT_PHYSICAL && bp->GetLocation() == adr)
 			continue;
-		}
-		bp->Activate(activate);	
+		bp->Activate(true);
 	};
 };
 
@@ -604,7 +619,7 @@ bool DEBUG_Breakpoint(void)
 	if (!CBreakpoint::CheckBreakpoint(SegValue(cs),reg_eip)) return false;
 	// Found. Breakpoint is valid
 	PhysPt where=GetAddress(SegValue(cs),reg_eip);
-	CBreakpoint::ActivateBreakpoints(where,false);	// Deactivate all breakpoints
+	CBreakpoint::DeactivateBreakpoints();	// Deactivate all breakpoints
 	return true;
 };
 
@@ -614,7 +629,7 @@ bool DEBUG_IntBreakpoint(Bit8u intNum)
 	PhysPt where=GetAddress(SegValue(cs),reg_eip);
 	if (!CBreakpoint::CheckIntBreakpoint(where,intNum,reg_ah,reg_al)) return false;
 	// Found. Breakpoint is valid
-	CBreakpoint::ActivateBreakpoints(where,false);	// Deactivate all breakpoints
+	CBreakpoint::DeactivateBreakpoints();	// Deactivate all breakpoints
 	return true;
 };
 
@@ -629,7 +644,7 @@ static bool StepOver()
 		// Don't add a temporary breakpoint if there's already one here
 		if (!CBreakpoint::FindPhysBreakpoint(SegValue(cs), reg_eip+size, true))
 			CBreakpoint::AddBreakpoint(SegValue(cs),reg_eip+size, true);
-		CBreakpoint::ActivateBreakpoints(start, true);
+		CBreakpoint::ActivateBreakpointsExceptAt(start);
 		debugging=false;
 		DrawCode();
 		return true;
@@ -1173,7 +1188,7 @@ bool ParseCommand(char* str) {
 		cpuLogCounter = GetHexValue(found,found);
 
 		debugging = false;
-		CBreakpoint::ActivateBreakpoints(SegPhys(cs)+reg_eip,true);						
+		CBreakpoint::ActivateBreakpointsExceptAt(SegPhys(cs)+reg_eip);
 		DOSBOX_SetNormalLoop();	
 		return true;
 	};
@@ -1192,7 +1207,7 @@ bool ParseCommand(char* str) {
 		Bit8u intNr = (Bit8u)GetHexValue(found,found);
 		DEBUG_ShowMsg("DEBUG: Starting INT %02X\n",intNr);
 		CBreakpoint::AddBreakpoint(SegValue(cs),reg_eip, true);
-		CBreakpoint::ActivateBreakpoints(SegPhys(cs)+reg_eip-1,true);
+		CBreakpoint::ActivateBreakpointsExceptAt(SegPhys(cs)+reg_eip-1);
 		debugging = false;
 		DrawCode();
 		DOSBOX_SetNormalLoop();
@@ -1659,14 +1674,14 @@ Bit32u DEBUG_CheckKeys(void) {
 				break; 
 		case KEY_F(5):	// Run Program
 				debugging=false;
-				CBreakpoint::ActivateBreakpoints(SegPhys(cs)+reg_eip,true);
+				CBreakpoint::ActivateBreakpointsExceptAt(SegPhys(cs)+reg_eip);
 
 				skipFirstInstruction = true; // for heavy debugger
 				CPU_Cycles = 1;
 				ret=(*cpudecoder)();
 
 				// ensure all breakpoints are activated
-				CBreakpoint::ActivateBreakpoints(0xFFFFFFFF,true);
+				CBreakpoint::ActivateBreakpoints();
 
 				skipDraw = true; // don't update screen after this instruction
 
@@ -1693,7 +1708,7 @@ Bit32u DEBUG_CheckKeys(void) {
 					DOSBOX_SetNormalLoop();
 
 					// ensure all breakpoints are activated
-					CBreakpoint::ActivateBreakpoints(0xFFFFFFFF,true);
+					CBreakpoint::ActivateBreakpoints();
 
 					return 0;
 				} else {
@@ -1788,7 +1803,7 @@ Bitu DEBUG_Loop(void) {
 	SDL_Delay(1);
 	if ((oldCS!=SegValue(cs)) || (oldEIP!=reg_eip)) {
 		CBreakpoint::AddBreakpoint(oldCS,oldEIP,true);
-		CBreakpoint::ActivateBreakpoints(SegPhys(cs)+reg_eip,true);
+		CBreakpoint::ActivateBreakpointsExceptAt(SegPhys(cs)+reg_eip);
 		debugging=false;
 		DOSBOX_SetNormalLoop();
 		return 0;
@@ -2112,7 +2127,7 @@ void DEBUG_CheckExecuteBreakpoint(Bit16u seg, Bit32u off)
 {
 	if (pDebugcom && pDebugcom->IsActive()) {
 		CBreakpoint::AddBreakpoint(seg,off,true);		
-		CBreakpoint::ActivateBreakpoints(SegPhys(cs)+reg_eip,true);	
+		CBreakpoint::ActivateBreakpointsExceptAt(SegPhys(cs)+reg_eip);
 		pDebugcom = 0;
 	};
 };
