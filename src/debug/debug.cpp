@@ -312,6 +312,7 @@ public:
 	static bool				CheckBreakpoint		(Bitu seg, Bitu off);
 	static bool				CheckIntBreakpoint	(PhysPt adr, Bit8u intNr, Bit16u ahValue, Bit16u alValue);
 	static CBreakpoint*		FindPhysBreakpoint	(Bit16u seg, Bit32u off, bool once);
+	static CBreakpoint*		FindOtherActiveBreakpoint(PhysPt adr, CBreakpoint* skip);
 	static bool				IsBreakpoint		(Bit16u seg, Bit32u off);
 	static bool				DeleteBreakpoint	(Bit16u seg, Bit32u off);
 	static bool				DeleteByIndex		(Bit16u index);
@@ -338,7 +339,7 @@ private:
 };
 
 CBreakpoint::CBreakpoint(void):
-location(0),
+location(0),oldData(0xCC),
 active(false),once(false),
 segment(0),offset(0),intNr(0),ahValue(0),alValue(0),
 type(BKPNT_UNKNOWN) { }
@@ -346,21 +347,36 @@ type(BKPNT_UNKNOWN) { }
 void CBreakpoint::Activate(bool _active)
 {
 #if !C_HEAVY_DEBUG
-	if (GetType()==BKPNT_PHYSICAL) {
+	if (GetType() == BKPNT_PHYSICAL) {
 		if (_active) {
 			// Set 0xCC and save old value
 			Bit8u data = mem_readb(location);
-			if (data!=0xCC) {
+			if (data != 0xCC) {
 				oldData = data;
 				mem_writeb(location,0xCC);
+			} else if (!active) {
+				// Another activate breakpoint is already here.
+				// Find it, and copy its oldData value
+				CBreakpoint *bp = FindOtherActiveBreakpoint(location, this);
+
+				if (!bp || bp->oldData == 0xCC) {
+					// This might also happen if there is a real 0xCC instruction here
+					DEBUG_ShowMsg("DEBUG: Internal error while activating breakpoint.\n");
+					oldData = 0xCC;
+				} else
+					oldData = bp->oldData;
 			}
 		} else {
-			// FIXME: This might break if there are both
-			// temporary and permanent breakpoints at an address
+			if (mem_readb(location) == 0xCC) {
+				if (oldData == 0xCC)
+					DEBUG_ShowMsg("DEBUG: Internal error while deactivating breakpoint.\n");
 
-			// Remove 0xCC and set old value
-			if (mem_readb (location)==0xCC) {
-				mem_writeb(location,oldData);
+				// Check if we are the last active breakpoint at this location
+				bool otherActive = (FindOtherActiveBreakpoint(location, this) != 0);
+
+				// If so, remove 0xCC and set old value
+				if (!otherActive)
+					mem_writeb(location, oldData);
 			}
 		}
 	}
@@ -448,7 +464,7 @@ bool CBreakpoint::CheckBreakpoint(Bitu seg, Bitu off)
 				bp = FindPhysBreakpoint(seg, off, true);
 				if (bp) {
 					BPoints.remove(bp);
-					bp->Activate(false); //??
+					bp->Activate(false);
 					delete bp;
 				}
 			}
@@ -569,6 +585,16 @@ CBreakpoint* CBreakpoint::FindPhysBreakpoint(Bit16u seg, Bit32u off, bool once)
 	return 0;
 }
 
+CBreakpoint* CBreakpoint::FindOtherActiveBreakpoint(PhysPt adr, CBreakpoint* skip)
+{
+	std::list<CBreakpoint*>::iterator i;
+	for (i = BPoints.begin(); i != BPoints.end(); i++) {
+		CBreakpoint* bp = (*i);
+		if (bp != skip && bp->GetType() == BKPNT_PHYSICAL && bp->GetLocation() == adr && bp->IsActive())
+			return bp;
+	}
+	return 0;
+}
 
 // is there a permanent breakpoint at address ?
 bool CBreakpoint::IsBreakpoint(Bit16u seg, Bit32u off)
